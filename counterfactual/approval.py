@@ -15,6 +15,7 @@ class ApprovalRequest:
     incident_id: str
     action_type: str
     target: str | None = None
+    parameters: dict[str, Any] = field(default_factory=dict)
     status: str = "pending"
     requested_at: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)
@@ -29,6 +30,7 @@ class ApprovalRequest:
             "incident_id": self.incident_id,
             "action_type": self.action_type,
             "target": self.target,
+            "parameters": dict(self.parameters),
             "status": self.status,
             "requested_at": self.requested_at.isoformat(),
             "decided_at": (
