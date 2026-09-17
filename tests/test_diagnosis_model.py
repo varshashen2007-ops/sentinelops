@@ -20,6 +20,7 @@ def test_evidence_reference_to_dict():
         "description": "Container was OOMKilled",
         "timestamp": "2026-09-17T10:00:00+00:00",
         "resource": "checkout-api",
+        "data": {},
     }
 
 

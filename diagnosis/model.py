@@ -7,8 +7,9 @@ class EvidenceReference:
     """
     Reference to evidence supporting a diagnosis.
 
-    The diagnosis stores references rather than copying or modifying
-    the underlying evidence.
+    The diagnosis stores a lightweight representation of the
+    underlying evidence rather than owning or modifying the
+    original evidence object.
     """
 
     source: str
@@ -16,6 +17,7 @@ class EvidenceReference:
     description: str
     timestamp: str | None = None
     resource: str | None = None
+    data: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -24,6 +26,7 @@ class EvidenceReference:
             "description": self.description,
             "timestamp": self.timestamp,
             "resource": self.resource,
+            "data": self.data,
         }
 
 

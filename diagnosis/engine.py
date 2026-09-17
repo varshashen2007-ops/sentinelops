@@ -69,6 +69,7 @@ class DiagnosisEngine:
                 description=incident.details or incident.title,
                 timestamp=evidence.timestamp.isoformat(),
                 resource=evidence.resource,
+                data=dict(evidence.data),
             )
         ]
 
