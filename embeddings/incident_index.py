@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 from embeddings.incident_embedding import IncidentEmbeddingService
 from embeddings.vector_store import InMemoryVectorStore, VectorMatch
@@ -39,6 +38,9 @@ class IncidentVectorIndex:
     ) -> IndexedIncident:
         """
         Generate an embedding for an incident and store it.
+
+        If the incident already exists, its vector and metadata are
+        replaced with the latest incident representation.
         """
 
         embedded = self.embedding_service.embed_incident(
@@ -60,6 +62,19 @@ class IncidentVectorIndex:
             incident_id=embedded.incident_id,
             document=embedded.document,
         )
+
+    def update_incident(
+        self,
+        incident: Incident,
+    ) -> IndexedIncident:
+        """
+        Re-embed an existing incident using its latest state.
+
+        The incident ID remains the stable vector-store key, so the
+        previous representation is replaced rather than duplicated.
+        """
+
+        return self.add_incident(incident)
 
     def add_incidents(
         self,

@@ -204,3 +204,32 @@ def test_clear_removes_indexed_incidents():
     index.clear()
 
     assert index.count() == 0
+
+
+def test_update_incident_replaces_existing_vector():
+    index = create_index()
+
+    incident = create_incident(
+        "incident-001",
+        "OOMKilled",
+    )
+
+    index.add_incident(incident)
+
+    assert index.count() == 1
+
+    incident.dna = IncidentDNA(
+        failure="FailedScheduling",
+    )
+
+    updated = index.update_incident(incident)
+
+    assert updated.incident_id == "incident-001"
+    assert index.count() == 1
+
+    stored = index.vector_store.get("incident-001")
+
+    assert stored is not None
+    assert stored.metadata["incident_id"] == "incident-001"
+    assert "FailedScheduling" in stored.metadata["document"]
+    assert "OOMKilled" not in stored.metadata["document"]
