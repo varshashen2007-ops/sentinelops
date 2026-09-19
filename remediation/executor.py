@@ -150,7 +150,7 @@ class RemediationExecutor:
                 action_type=request.action_type,
                 target=request.target,
                 status="failed",
-                message="Remediation action failed.",
+                message=f"Remediation action failed: {exc}",
                 details={
                     "error_type": type(exc).__name__,
                     "error": str(exc),
@@ -172,7 +172,7 @@ class RemediationExecutor:
 
             if replicas < 0:
                 raise ValueError(
-                    "Scale remediation requires replicas >= 0."
+                    "Scale remediation does not allow negative replicas."
                 )
 
         elif action_type == "increase_memory":

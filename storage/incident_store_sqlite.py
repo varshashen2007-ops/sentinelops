@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import sqlite3
 from typing import Any, TYPE_CHECKING
@@ -108,12 +109,15 @@ class SQLiteIncidentStore(IncidentStore):
             return incident.model_dump(mode="json")
 
         if hasattr(incident, "to_dict"):
-            return incident.to_dict()
+            payload = incident.to_dict()
+        elif hasattr(incident, "__dict__"):
+            payload = dict(incident.__dict__)
+        else:
+            raise TypeError("Incident cannot be serialized")
 
-        if hasattr(incident, "__dict__"):
-            return dict(incident.__dict__)
-
-        raise TypeError("Incident cannot be serialized")
+        # Convert datetime and other Python objects into
+        # JSON-safe values before storing them in SQLite.
+        return json.loads(json.dumps(payload, default=str))
 
     @staticmethod
     def _deserialize(data: str) -> "Incident":
