@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    >
+    <meta name="theme-color" content="#070b14">
+    <title>SentinelOps — Operations Center</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="background-grid"></div>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <div class="app-shell">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-mark">
+                    <span class="brand-core"></span>
+                </div>
+
+                <div class="brand-text">
+                    <strong>Sentinel<span>Ops</span></strong>
+                    <small>Autonomous Reliability</small>
+                </div>
+
+                <button
+                    class="icon-button mobile-close"
+                    id="closeSidebar"
+                    aria-label="Close navigation"
+                >
+                    ×
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <span class="sidebar-label">COMMAND</span>
+
+                <button class="nav-item active" data-view="overview">
+                    <span class="nav-icon">⌂</span>
+                    <span>Overview</span>
+                </button>
+
+                <button class="nav-item" data-view="incidents">
+                    <span class="nav-icon">!</span>
+                    <span>Incidents</span>
+                    <span class="nav-count">3</span>
+                </button>
+
+                <button class="nav-item" data-view="timeline">
+                    <span class="nav-icon">◷</span>
+                    <span>Timeline</span>
+                </button>
+
+                <button class="nav-item" data-view="remediation">
+                    <span class="nav-icon">⚡</span>
+                    <span>Remediation</span>
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <span class="sidebar-label">OBSERVABILITY</span>
+
+                <button class="nav-item">
+                    <span class="nav-icon">⌁</span>
+                    <span>Metrics</span>
+                </button>
+
+                <button class="nav-item">
+                    <span class="nav-icon">≋</span>
+                    <span>Logs</span>
+                </button>
+
+                <button class="nav-item">
+                    <span class="nav-icon">◎</span>
+                    <span>Traces</span>
+                </button>
+
+                <button class="nav-item">
+                    <span class="nav-icon">◇</span>
+                    <span>Kubernetes</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="cluster-card">
+                <div class="cluster-top">
+                    <span class="status-dot online"></span>
+                    <span>Cluster status</span>
+                    <span class="cluster-status">HEALTHY</span>
+                </div>
+
+                <div class="cluster-name">production-cluster</div>
+
+                <div class="cluster-meta">
+                    <span>8 nodes</span>
+                    <span>42 pods</span>
+                </div>
+            </div>
+
+            <div class="user-card">
+                <div class="avatar">D</div>
+                <div>
+                    <strong>Dhrithi</strong>
+                    <small>Infrastructure</small>
+                </div>
+                <span class="user-menu">•••</span>
+            </div>
+        </aside>
+
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- MAIN -->
+        <main class="main-content">
+
+            <!-- TOPBAR -->
+            <header class="topbar">
+                <button
+                    class="menu-button"
+                    id="openSidebar"
+                    aria-label="Open navigation"
+                >
+                    ☰
+                </button>
+
+                <div class="breadcrumb">
+                    <span>Operations</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <strong>Overview</strong>
+                </div>
+
+                <div class="topbar-actions">
+                    <div class="system-live">
+                        <span class="pulse-dot"></span>
+                        <span>LIVE</span>
+                    </div>
+
+                    <button class="topbar-icon" title="Notifications">
+                        ♢
+                        <span class="notification-dot"></span>
+                    </button>
+
+                    <button class="topbar-icon" title="Settings">
+                        ⚙
+                    </button>
+                </div>
+            </header>
+
+            <!-- PAGE -->
+            <div class="page">
+
+                <section class="hero">
+                    <div>
+                        <div class="eyebrow">
+                            <span class="eyebrow-line"></span>
+                            SYSTEM OVERVIEW
+                        </div>
+
+                        <h1>
+                            Good morning,
+                            <span>Dhrithi.</span>
+                        </h1>
+
+                        <p>
+                            Your infrastructure is being watched.
+                            Here's what needs your attention.
+                        </p>
+                    </div>
+
+                    <div class="hero-time">
+                        <span id="currentTime">--:--</span>
+                        <small id="currentDate">Loading date...</small>
+                    </div>
+                </section>
+
+                <!-- HEALTH SUMMARY -->
+                <section class="health-grid">
+
+                    <article class="metric-card health-card">
+                        <div class="metric-heading">
+                            <span class="metric-icon health">♥</span>
+                            <span>System health</span>
+                            <span class="metric-menu">•••</span>
+                        </div>
+
+                        <div class="metric-main">
+                            <strong>98.7%</strong>
+                            <span class="trend positive">↑ 2.4%</span>
+                        </div>
+
+                        <div class="mini-chart health-chart">
+                            <span style="height:42%"></span>
+                            <span style="height:58%"></span>
+                            <span style="height:50%"></span>
+                            <span style="height:68%"></span>
+                            <span style="height:61%"></span>
+                            <span style="height:76%"></span>
+                            <span style="height:73%"></span>
+                            <span style="height:88%"></span>
+                            <span style="height:82%"></span>
+                            <span style="height:94%"></span>
+                            <span style="height:91%"></span>
+                            <span style="height:98%"></span>
+                        </div>
+
+                        <small class="metric-foot">
+                            Last 12 hours
+                        </small>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-heading">
+                            <span class="metric-icon danger">!</span>
+                            <span>Active incidents</span>
+                            <span class="metric-menu">•••</span>
+                        </div>
+
+                        <div class="metric-main">
+                            <strong>03</strong>
+                            <span class="trend danger-text">2 critical</span>
+                        </div>
+
+                        <div class="severity-bar">
+                            <span class="critical" style="width:66%"></span>
+                            <span class="warning" style="width:22%"></span>
+                            <span class="minor" style="width:12%"></span>
+                        </div>
+
+                        <small class="metric-foot">
+                            1 resolved in the last hour
+                        </small>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-heading">
+                            <span class="metric-icon purple">⌁</span>
+                            <span>Telemetry</span>
+                            <span class="metric-menu">•••</span>
+                        </div>
+
+                        <div class="metric-main">
+                            <strong>99.96%</strong>
+                            <span class="trend positive">Healthy</span>
+                        </div>
+
+                        <div class="telemetry-list">
+                            <span>
+                                <i class="telemetry-dot green"></i>
+                                Prometheus
+                                <b>OK</b>
+                            </span>
+
+                            <span>
+                                <i class="telemetry-dot green"></i>
+                                Loki
+                                <b>OK</b>
+                            </span>
+
+                            <span>
+                                <i class="telemetry-dot green"></i>
+                                Jaeger
+                                <b>OK</b>
+                            </span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-heading">
+                            <span class="metric-icon blue">⚡</span>
+                            <span>Auto remediation</span>
+                            <span class="metric-menu">•••</span>
+                        </div>
+
+                        <div class="metric-main">
+                            <strong>27</strong>
+                            <span class="trend positive">↑ 8 this week</span>
+                        </div>
+
+                        <div class="remediation-success">
+                            <div class="success-ring">
+                                <span>96%</span>
+                            </div>
+
+                            <div>
+                                <strong>Success rate</strong>
+                                <small>Last 30 actions</small>
+                            </div>
+                        </div>
+                    </article>
+
+                </section>
+
+                <!-- MAIN GRID -->
+                <section class="dashboard-grid">
+
+                    <!-- INCIDENTS -->
+                    <article class="panel incidents-panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <div class="panel-kicker">ATTENTION REQUIRED</div>
+                                <h2>Active incidents</h2>
+                            </div>
+
+                            <button class="ghost-button" id="viewAllIncidents">
+                                View all
+                                <span>→</span>
+                            </button>
+                        </div>
+
+                        <div class="incident-list" id="incidentList">
+
+                            <button
+                                class="incident-row selected"
+                                data-incident-id="INC-2407"
+                            >
+                                <div class="severity-indicator critical"></div>
+
+                                <div class="incident-content">
+                                    <div class="incident-title-row">
+                                        <strong>API latency spike</strong>
+                                        <span class="badge critical-badge">
+                                            CRITICAL
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        Elevated p95 latency detected on
+                                        production API workloads.
+                                    </p>
+
+                                    <div class="incident-meta">
+                                        <span>INC-2407</span>
+                                        <span>•</span>
+                                        <span>api-gateway</span>
+                                        <span>•</span>
+                                        <span>8 min ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="incident-arrow">→</div>
+                            </button>
+
+                            <button
+                                class="incident-row"
+                                data-incident-id="INC-2406"
+                            >
+                                <div class="severity-indicator warning"></div>
+
+                                <div class="incident-content">
+                                    <div class="incident-title-row">
+                                        <strong>Memory pressure</strong>
+                                        <span class="badge warning-badge">
+                                            WARNING
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        Memory utilization above threshold
+                                        on worker nodes.
+                                    </p>
+
+                                    <div class="incident-meta">
+                                        <span>INC-2406</span>
+                                        <span>•</span>
+                                        <span>worker-pool</span>
+                                        <span>•</span>
+                                        <span>21 min ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="incident-arrow">→</div>
+                            </button>
+
+                            <button
+                                class="incident-row"
+                                data-incident-id="INC-2405"
+                            >
+                                <div class="severity-indicator minor"></div>
+
+                                <div class="incident-content">
+                                    <div class="incident-title-row">
+                                        <strong>Pod restart detected</strong>
+                                        <span class="badge minor-badge">
+                                            MINOR
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        Payment service restarted after a
+                                        failed health check.
+                                    </p>
+
+                                    <div class="incident-meta">
+                                        <span>INC-2405</span>
+                                        <span>•</span>
+                                        <span>payments</span>
+                                        <span>•</span>
+                                        <span>39 min ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="incident-arrow">→</div>
+                            </button>
+
+                        </div>
+                    </article>
+
+                    <!-- SYSTEM SIGNALS -->
+                    <article class="panel signals-panel">
+                        <div class="panel-header">
+                            <div>
+                                <div class="panel-kicker">LIVE SIGNALS</div>
+                                <h2>Infrastructure</h2>
+                            </div>
+
+                            <span class="live-label">
+                                <span class="pulse-dot"></span>
+                                Live
+                            </span>
+                        </div>
+
+                        <div class="signal-list">
+
+                            <div class="signal">
+                                <div class="signal-icon cpu">⌁</div>
+                                <div class="signal-info">
+                                    <strong>CPU utilization</strong>
+                                    <small>Cluster average</small>
+                                </div>
+                                <div class="signal-value">
+                                    <strong>42%</strong>
+                                    <div class="signal-progress">
+                                        <span style="width:42%"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="signal">
+                                <div class="signal-icon memory">▦</div>
+                                <div class="signal-info">
+                                    <strong>Memory</strong>
+                                    <small>Cluster average</small>
+                                </div>
+                                <div class="signal-value">
+                                    <strong>61%</strong>
+                                    <div class="signal-progress">
+                                        <span style="width:61%"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="signal">
+                                <div class="signal-icon network">⌁</div>
+                                <div class="signal-info">
+                                    <strong>Network</strong>
+                                    <small>Ingress / egress</small>
+                                </div>
+                                <div class="signal-value">
+                                    <strong>18.4 MB/s</strong>
+                                    <div class="signal-progress">
+                                        <span style="width:34%"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="signal">
+                                <div class="signal-icon pods">◇</div>
+                                <div class="signal-info">
+                                    <strong>Pods</strong>
+                                    <small>Running / total</small>
+                                </div>
+                                <div class="signal-value">
+                                    <strong>42 / 44</strong>
+                                    <div class="signal-progress">
+                                        <span style="width:95%"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </article>
+
+                </section>
+
+                <!-- INCIDENT DETAIL -->
+                <section class="detail-layout">
+
+                    <article class="panel incident-detail">
+
+                        <div class="panel-header detail-header">
+                            <div>
+                                <div class="panel-kicker">SELECTED INCIDENT</div>
+
+                                <div class="detail-title">
+                                    <span class="status-orb critical"></span>
+                                    <h2 id="detailTitle">
+                                        API latency spike
+                                    </h2>
+                                </div>
+
+                                <div class="detail-id">
+                                    INC-2407 · production · api-gateway
+                                </div>
+                            </div>
+
+                            <span class="badge critical-badge">
+                                CRITICAL
+                            </span>
+                        </div>
+
+                        <div class="detail-stats">
+
+                            <div>
+                                <span>Detected</span>
+                                <strong>08:42 UTC</strong>
+                            </div>
+
+                            <div>
+                                <span>Duration</span>
+                                <strong>08m 14s</strong>
+                            </div>
+
+                            <div>
+                                <span>Confidence</span>
+                                <strong>94.8%</strong>
+                            </div>
+
+                            <div>
+                                <span>Service</span>
+                                <strong>api-gateway</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="diagnosis-box">
+                            <div class="diagnosis-icon">✦</div>
+
+                            <div>
+                                <div class="diagnosis-label">
+                                    CORRELATED DIAGNOSIS
+                                </div>
+
+                                <strong>
+                                    Upstream database connection saturation
+                                </strong>
+
+                                <p>
+                                    Correlated latency, connection pool
+                                    utilization and application error signals
+                                    indicate resource pressure in the primary
+                                    database dependency.
+                                </p>
+                            </div>
+                        </div>
+
+                    </article>
+
+                    <!-- RECOMMENDATION -->
+                    <article class="panel recommendation-panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <div class="panel-kicker">NEXT ACTION</div>
+                                <h2>Recommendation</h2>
+                            </div>
+
+                            <span class="ai-badge">
+                                <span>✦</span>
+                                AI
+                            </span>
+                        </div>
+
+                        <div class="recommendation-content">
+                            <div class="recommendation-icon">
+                                ⚡
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Scale API deployment
+                                </strong>
+
+                                <p>
+                                    Increase replicas from 4 to 6 to reduce
+                                    request pressure while the database
+                                    connection pool recovers.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-meta">
+                            <span>
+                                <b>Target</b>
+                                deployment/api-gateway
+                            </span>
+
+                            <span>
+                                <b>Risk</b>
+                                <i class="risk-low">Low</i>
+                            </span>
+                        </div>
+
+                        <button
+                            class="primary-button full-button"
+                            id="openRemediation"
+                        >
+                            Review remediation
+                            <span>→</span>
+                        </button>
+
+                    </article>
+
+                </section>
+
+                <!-- TIMELINE -->
+                <section class="panel timeline-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-kicker">EVENT STREAM</div>
+                            <h2>Incident timeline</h2>
+                        </div>
+
+                        <button class="ghost-button">
+                            Open timeline
+                            <span>→</span>
+                        </button>
+                    </div>
+
+                    <div class="timeline">
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker critical"></div>
+
+                            <div class="timeline-time">
+                                08:50
+                                <small>UTC</small>
+                            </div>
+
+                            <div class="timeline-event">
+                                <strong>
+                                    Incident escalated to CRITICAL
+                                </strong>
+                                <span>
+                                    Correlation engine detected sustained
+                                    latency above critical threshold.
+                                </span>
+                            </div>
+
+                            <span class="source-tag">
+                                Correlation
+                            </span>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+
+                            <div class="timeline-time">
+                                08:47
+                                <small>UTC</small>
+                            </div>
+
+                            <div class="timeline-event">
+                                <strong>
+                                    Database connection saturation detected
+                                </strong>
+                                <span>
+                                    Connection pool utilization reached 94%.
+                                </span>
+                            </div>
+
+                            <span class="source-tag">
+                                Prometheus
+                            </span>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+
+                            <div class="timeline-time">
+                                08:45
+                                <small>UTC</small>
+                            </div>
+
+                            <div class="timeline-event">
+                                <strong>
+                                    Increased 5xx responses observed
+                                </strong>
+                                <span>
+                                    Error rate crossed the service threshold.
+                                </span>
+                            </div>
+
+                            <span class="source-tag">
+                                Loki
+                            </span>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+
+                            <div class="timeline-time">
+                                08:42
+                                <small>UTC</small>
+                            </div>
+
+                            <div class="timeline-event">
+                                <strong>
+                                    API latency anomaly detected
+                                </strong>
+                                <span>
+                                    p95 latency increased from 180ms to 1.8s.
+                                </span>
+                            </div>
+
+                            <span class="source-tag">
+                                Prometheus
+                            </span>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- REMEDIATION -->
+                <section class="panel remediation-panel" id="remediationSection">
+
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-kicker">CONTROL PLANE</div>
+                            <h2>Remediation</h2>
+                        </div>
+
+                        <span class="secure-label">
+                            <span class="status-dot online"></span>
+                            Protected
+                        </span>
+                    </div>
+
+                    <div class="remediation-grid">
+
+                        <div class="remediation-target">
+                            <span class="target-label">TARGET RESOURCE</span>
+
+                            <div class="target-box">
+                                <div class="target-icon">◇</div>
+
+                                <div>
+                                    <strong>api-gateway</strong>
+                                    <span>
+                                        Deployment · production
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-select">
+                            <label for="actionType">
+                                ACTION
+                            </label>
+
+                            <select id="actionType">
+                                <option value="scale">
+                                    Scale deployment
+                                </option>
+
+                                <option value="restart">
+                                    Restart deployment
+                                </option>
+
+                                <option value="rollback">
+                                    Rollback deployment
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="action-select">
+                            <label for="replicaCount">
+                                REPLICAS
+                            </label>
+
+                            <input
+                                id="replicaCount"
+                                type="number"
+                                min="0"
+                                value="6"
+                            >
+                        </div>
+
+                    </div>
+
+                    <div class="remediation-actions">
+
+                        <button
+                            class="secondary-button"
+                            id="dryRunButton"
+                        >
+                            <span>◌</span>
+                            Run dry-run
+                        </button>
+
+                        <button
+                            class="danger-button"
+                            id="executeButton"
+                        >
+                            <span>⚡</span>
+                            Execute remediation
+                        </button>
+
+                    </div>
+
+                    <div
+                        class="remediation-result"
+                        id="remediationResult"
+                        hidden
+                    ></div>
+
+                </section>
+
+                <footer class="footer">
+                    <span>SentinelOps</span>
+                    <span>Infrastructure Intelligence Platform</span>
+                    <span>v1.0</span>
+                </footer>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

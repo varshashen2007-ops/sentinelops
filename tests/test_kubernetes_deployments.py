@@ -1,16 +1,22 @@
+from unittest.mock import MagicMock, patch
+
 from collectors.kubernetes_collector import KubernetesCollector
 
 
 def test_kubernetes_collector_collects_deployments():
-    collector = KubernetesCollector()
+    mock_deployments = MagicMock()
+    mock_deployments.items = []
 
-    evidence = collector.collect_deployments()
+    with patch("collectors.kubernetes_collector.config.load_kube_config"), \
+         patch("collectors.kubernetes_collector.client.CoreV1Api"), \
+         patch("collectors.kubernetes_collector.client.AppsV1Api") as mock_apps:
 
-    assert isinstance(evidence, list)
+        mock_apps.return_value.list_deployment_for_all_namespaces.return_value = (
+            mock_deployments
+        )
 
-    for item in evidence:
-        assert item.source == "kubernetes"
-        assert item.evidence_type == "deployment"
-        assert item.resource is not None
-        assert "desired_replicas" in item.data
-        assert "ready_replicas" in item.data
+        collector = KubernetesCollector()
+        evidence = collector.collect_deployments()
+
+        assert evidence == []
+        mock_apps.return_value.list_deployment_for_all_namespaces.assert_called_once()

@@ -1,0 +1,1 @@
+from .document_store import Document, DocumentStore, InMemoryDocumentStore
