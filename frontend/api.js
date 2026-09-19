@@ -1,83 +1,155 @@
-const API_BASE_URL = "/api";
+const API_BASE_URL =
+    window.SENTINELOPS_API_BASE_URL || "";
 
 
-async function request(path, options = {}) {
-    const response = await fetch(
-        `${API_BASE_URL}${path}`,
-        {
-            headers: {
-                "Content-Type": "application/json",
-                ...(options.headers || {}),
-            },
-            ...options,
-        }
-    );
-
-    let body;
-
-    try {
-        body = await response.json();
-    } catch {
-        throw new Error(
-            `API returned HTTP ${response.status}.`
+async function apiRequest(
+    path,
+    options = {}
+) {
+    const response =
+        await fetch(
+            `${API_BASE_URL}${path}`,
+            {
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                    ...(options.headers || {}),
+                },
+                ...options,
+            }
         );
-    }
+
+    const contentType =
+        response.headers.get(
+            "content-type"
+        ) || "";
+
+    const body =
+        contentType.includes(
+            "application/json"
+        )
+            ? await response.json()
+            : await response.text();
 
     if (!response.ok) {
-        throw new Error(
-            body.message || "API request failed."
-        );
+        const message =
+            typeof body === "object" &&
+            body?.message
+                ? body.message
+                : `Request failed with status ${response.status}`;
+
+        throw new Error(message);
     }
 
     return body;
 }
 
 
-async function getIncident(incidentId) {
-    return request(
-        `/incidents/${encodeURIComponent(incidentId)}`
+async function getIncident(
+    incidentId
+) {
+    return apiRequest(
+        `/incidents/${encodeURIComponent(
+            incidentId
+        )}`
     );
 }
 
 
-async function getTimeline(incidentId) {
-    return request(
-        `/incidents/${encodeURIComponent(incidentId)}/timeline`
+async function getTimeline(
+    incidentId
+) {
+    return apiRequest(
+        `/incidents/${encodeURIComponent(
+            incidentId
+        )}/timeline`
     );
 }
 
 
-async function getEvidence(incidentId) {
-    return request(
-        `/incidents/${encodeURIComponent(incidentId)}/evidence`
+async function getEvidence(
+    incidentId
+) {
+    return apiRequest(
+        `/incidents/${encodeURIComponent(
+            incidentId
+        )}/evidence`
     );
 }
 
 
-async function getRecommendations(incidentId) {
-    return request(
-        `/incidents/${encodeURIComponent(incidentId)}/recommendations`
+async function getRecommendations(
+    incidentId
+) {
+    return apiRequest(
+        `/incidents/${encodeURIComponent(
+            incidentId
+        )}/recommendations`
     );
 }
 
 
-async function dryRunRemediation(action) {
-    return request(
+async function getDiagnosis(
+    incidentId
+) {
+    return apiRequest(
+        `/incidents/${encodeURIComponent(
+            incidentId
+        )}/diagnosis`
+    );
+}
+
+
+async function dryRunRemediation(
+    payload
+) {
+    return apiRequest(
         "/remediation/dry-run",
         {
             method: "POST",
-            body: JSON.stringify(action),
+            body: JSON.stringify(
+                payload
+            ),
         }
     );
 }
 
 
-async function executeRemediation(action) {
-    return request(
+async function executeRemediation(
+    payload
+) {
+    return apiRequest(
         "/remediation/execute",
         {
             method: "POST",
-            body: JSON.stringify(action),
+            body: JSON.stringify(
+                payload
+            ),
         }
     );
 }
+
+
+/*
+ * Expose API functions to the frontend application.
+ */
+window.getIncident =
+    getIncident;
+
+window.getTimeline =
+    getTimeline;
+
+window.getEvidence =
+    getEvidence;
+
+window.getRecommendations =
+    getRecommendations;
+
+window.getDiagnosis =
+    getDiagnosis;
+
+window.dryRunRemediation =
+    dryRunRemediation;
+
+window.executeRemediation =
+    executeRemediation;

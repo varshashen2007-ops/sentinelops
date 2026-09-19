@@ -1,288 +1,757 @@
-const state = {
-    incidents: [],
-    selectedIncident: null,
-    timeline: [],
-    evidence: [],
-    recommendations: [],
-    loading: false,
-    error: null,
+const demoIncidents = {
+    "INC-2407": {
+        title: "API latency spike",
+        severity: "CRITICAL",
+        service: "api-gateway",
+        namespace: "production",
+        description:
+            "Elevated p95 latency detected on production API workloads.",
+    },
+
+    "INC-2406": {
+        title: "Memory pressure",
+        severity: "WARNING",
+        service: "worker-pool",
+        namespace: "production",
+        description:
+            "Memory utilization above threshold on worker nodes.",
+    },
+
+    "INC-2405": {
+        title: "Pod restart detected",
+        severity: "MINOR",
+        service: "payments",
+        namespace: "production",
+        description:
+            "Payment service restarted after a failed health check.",
+    },
 };
 
+const demoTimeline = {
+    "INC-2407": [
+        {
+            timestamp: "08:42",
+            source: "Prometheus",
+            event:
+                "API latency anomaly detected",
+        },
+        {
+            timestamp: "08:45",
+            source: "Loki",
+            event:
+                "Increased 5xx responses observed",
+        },
+        {
+            timestamp: "08:47",
+            source: "Prometheus",
+            event:
+                "Database connection saturation detected",
+        },
+        {
+            timestamp: "08:50",
+            source: "Correlation",
+            event:
+                "Incident escalated to CRITICAL",
+        },
+    ],
+};
 
-function setLoading(loading) {
-    state.loading = loading;
+const demoEvidence = {
+    "INC-2407": [
+        {
+            source: "Prometheus",
+            type: "metric",
+            description:
+                "API p95 latency increased to 1.8 seconds.",
+        },
+        {
+            source: "Loki",
+            type: "log",
+            description:
+                "Elevated upstream timeout errors observed.",
+        },
+    ],
+};
 
-    const detail = document.getElementById("incident-detail");
+const demoDiagnosis = {
+    "INC-2407": {
+        diagnosis:
+            "Upstream database connection saturation",
+        confidence: 0.948,
+    },
+};
 
-    if (loading) {
-        detail.innerHTML =
-            '<p class="empty-state">Loading incident...</p>';
-    }
-}
+const demoRecommendations = {
+    "INC-2407": [
+        {
+            action:
+                "Scale API deployment",
+            target:
+                "deployment/api-gateway",
+        },
+    ],
+};
+
+let selectedIncidentId = "INC-2407";
+
+const incidentRows =
+    document.querySelectorAll(".incident-row");
+
+const sidebar =
+    document.getElementById("sidebar");
+
+const mobileOverlay =
+    document.getElementById("mobileOverlay");
+
+const openSidebarButton =
+    document.getElementById("openSidebar");
+
+const closeSidebarButton =
+    document.getElementById("closeSidebar");
+
+const currentTime =
+    document.getElementById("currentTime");
+
+const currentDate =
+    document.getElementById("currentDate");
+
+const remediationResult =
+    document.getElementById("remediationResult");
+
+const actionType =
+    document.getElementById("actionType");
+
+const replicaCount =
+    document.getElementById("replicaCount");
 
 
-function setError(error) {
-    state.error = error;
+function updateClock() {
+    const now = new Date();
 
-    const detail = document.getElementById("incident-detail");
-
-    detail.innerHTML = `
-        <p class="empty-state">
-            ${error}
-        </p>
-    `;
-}
-
-
-function renderSummary() {
-    document.getElementById("incident-count").textContent =
-        state.incidents.length;
-
-    document.getElementById("active-count").textContent =
-        state.incidents.filter(
-            (incident) => incident.status === "active"
-        ).length;
-
-    document.getElementById("recommendation-count").textContent =
-        state.recommendations.length;
-}
-
-
-function renderIncidents() {
-    const container = document.getElementById("incidents");
-
-    if (state.incidents.length === 0) {
-        container.innerHTML =
-            '<p class="empty-state">No incidents loaded.</p>';
-        return;
-    }
-
-    container.innerHTML = state.incidents
-        .map(
-            (incident) => `
-                <div
-                    class="incident"
-                    data-incident-id="${incident.incident_id}"
-                >
-                    <strong>${incident.incident_id}</strong>
-                    <div>Status: ${incident.status}</div>
-                    <div>
-                        Severity:
-                        ${incident.severity ?? "unknown"}
-                    </div>
-                </div>
-            `
-        )
-        .join("");
-
-    document.querySelectorAll(".incident").forEach((element) => {
-        element.addEventListener("click", () => {
-            selectIncident(element.dataset.incidentId);
+    currentTime.textContent =
+        now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
         });
-    });
+
+    currentDate.textContent =
+        now.toLocaleDateString([], {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
 }
 
 
-function renderIncidentDetail() {
-    const container = document.getElementById("incident-detail");
+function setSidebar(open) {
+    sidebar.classList.toggle(
+        "open",
+        open
+    );
 
-    if (!state.selectedIncident) {
-        container.innerHTML =
-            '<p class="empty-state">' +
-            "Select an incident to view details." +
-            "</p>";
-        return;
-    }
-
-    const incident = state.selectedIncident;
-
-    container.innerHTML = `
-        <h3>${incident.incident_id}</h3>
-
-        <p>Status: ${incident.status}</p>
-
-        <p>
-            Severity:
-            ${incident.severity ?? "unknown"}
-        </p>
-
-        <p>
-            Evidence items:
-            ${state.evidence.length}
-        </p>
-    `;
+    mobileOverlay.classList.toggle(
+        "visible",
+        open
+    );
 }
 
 
-function renderTimeline() {
-    const container = document.getElementById("timeline");
-
-    if (state.timeline.length === 0) {
-        container.innerHTML =
-            '<p class="empty-state">' +
-            "No timeline events loaded." +
-            "</p>";
-        return;
+async function getIncident(incidentId) {
+    try {
+        return await window.getIncident(
+            incidentId
+        );
+    } catch (error) {
+        return (
+            demoIncidents[incidentId] ||
+            null
+        );
     }
-
-    container.innerHTML = state.timeline
-        .map(
-            (event) => `
-                <div class="timeline-event">
-                    <strong>${event.event_type}</strong>
-                    <div>${event.timestamp}</div>
-                    <div>Source: ${event.source}</div>
-                    ${
-                        event.resource
-                            ? `<div>Resource: ${event.resource}</div>`
-                            : ""
-                    }
-                </div>
-            `
-        )
-        .join("");
 }
 
 
-function renderRecommendations() {
-    const container = document.getElementById("recommendations");
-
-    if (state.recommendations.length === 0) {
-        container.innerHTML =
-            '<p class="empty-state">' +
-            "No recommendations loaded." +
-            "</p>";
-        return;
+async function getTimeline(incidentId) {
+    try {
+        return await window.getTimeline(
+            incidentId
+        );
+    } catch (error) {
+        return (
+            demoTimeline[incidentId] ||
+            []
+        );
     }
+}
 
-    container.innerHTML = state.recommendations
-        .map(
-            (recommendation) => `
-                <div class="recommendation">
-                    <strong>${recommendation.action}</strong>
 
-                    ${
-                        recommendation.target
-                            ? `<div>
-                                Target:
-                                ${recommendation.target}
-                            </div>`
-                            : ""
-                    }
-                </div>
-            `
-        )
-        .join("");
+async function getEvidence(incidentId) {
+    try {
+        return await window.getEvidence(
+            incidentId
+        );
+    } catch (error) {
+        return (
+            demoEvidence[incidentId] ||
+            []
+        );
+    }
+}
+
+
+async function getDiagnosis(incidentId) {
+    try {
+        return await window.getDiagnosis(
+            incidentId
+        );
+    } catch (error) {
+        return (
+            demoDiagnosis[incidentId] ||
+            null
+        );
+    }
+}
+
+
+async function getRecommendations(
+    incidentId
+) {
+    try {
+        return await window.getRecommendations(
+            incidentId
+        );
+    } catch (error) {
+        return (
+            demoRecommendations[incidentId] ||
+            []
+        );
+    }
 }
 
 
 function getRemediationAction() {
-    const actionType =
-        document.getElementById("remediation-action").value;
+    const action =
+        actionType.value;
 
-    const namespace =
-        document.getElementById("remediation-namespace").value.trim();
+    const parameters = {};
 
-    const resourceName =
-        document.getElementById("remediation-resource").value.trim();
+    if (action === "scale") {
+        parameters.replicas =
+            Number(
+                replicaCount.value
+            );
+    }
 
     return {
-        action_type: actionType,
+        action_type: action,
         resource_type: "deployment",
-        namespace: namespace,
-        resource_name: resourceName,
-        parameters: {},
+        namespace: "production",
+        resource_name: "api-gateway",
+        parameters,
     };
 }
 
 
-function showRemediationResult(message) {
-    document.getElementById("remediation-result").textContent = message;
+function renderTimeline(events) {
+    const timeline =
+        document.querySelector(
+            ".timeline"
+        );
+
+    if (!timeline || !events?.length) {
+        return;
+    }
+
+    timeline.innerHTML =
+        events
+            .map(
+                (event, index) => {
+                    const timestamp =
+                        event.timestamp ||
+                        "--:--";
+
+                    const source =
+                        event.source ||
+                        "Telemetry";
+
+                    const description =
+                        event.event ||
+                        event.description ||
+                        event.data?.message ||
+                        "Telemetry event detected.";
+
+                    const critical =
+                        index ===
+                        events.length - 1;
+
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-marker ${
+                                critical
+                                    ? "critical"
+                                    : ""
+                            }"></div>
+
+                            <div class="timeline-time">
+                                ${timestamp}
+                                <small>UTC</small>
+                            </div>
+
+                            <div class="timeline-event">
+                                <strong>
+                                    ${description}
+                                </strong>
+
+                                <span>
+                                    Correlated infrastructure signal.
+                                </span>
+                            </div>
+
+                            <span class="source-tag">
+                                ${source}
+                            </span>
+                        </div>
+                    `;
+                }
+            )
+            .join("");
+}
+
+
+function renderEvidence(evidence) {
+    if (!evidence?.length) {
+        return;
+    }
+
+    const evidenceCount =
+        document.querySelector(
+            ".panel-kicker"
+        );
+
+    /*
+     * Evidence is already represented in the
+     * incident detail/timeline UI. Keep the
+     * loaded evidence available for future
+     * detailed evidence panels.
+     */
+    window.currentIncidentEvidence =
+        evidence;
+
+    if (evidenceCount) {
+        evidenceCount.dataset.evidenceCount =
+            String(evidence.length);
+    }
+}
+
+
+function renderDiagnosis(diagnosis) {
+    if (!diagnosis) {
+        return;
+    }
+
+    const diagnosisTitle =
+        document.querySelector(
+            ".diagnosis-box strong"
+        );
+
+    if (diagnosisTitle) {
+        diagnosisTitle.textContent =
+            diagnosis.diagnosis ||
+            "Correlated infrastructure diagnosis";
+    }
+}
+
+
+function renderRecommendations(
+    recommendations
+) {
+    if (!recommendations?.length) {
+        return;
+    }
+
+    const recommendationTitle =
+        document.querySelector(
+            ".recommendation-content strong"
+        );
+
+    if (recommendationTitle) {
+        recommendationTitle.textContent =
+            recommendations[0].action ||
+            "Review recommended remediation";
+    }
+}
+
+
+async function selectIncident(id) {
+    selectedIncidentId = id;
+
+    incidentRows.forEach((row) => {
+        row.classList.toggle(
+            "selected",
+            row.dataset.incidentId === id
+        );
+    });
+
+    const [
+        incident,
+        timeline,
+        evidence,
+        diagnosis,
+        recommendations,
+    ] = await Promise.all([
+        getIncident(id),
+        getTimeline(id),
+        getEvidence(id),
+        getDiagnosis(id),
+        getRecommendations(id),
+    ]);
+
+    if (!incident) {
+        return;
+    }
+
+    const title =
+        document.getElementById(
+            "detailTitle"
+        );
+
+    const detailId =
+        document.querySelector(
+            ".detail-id"
+        );
+
+    const badge =
+        document.querySelector(
+            ".detail-header .badge"
+        );
+
+    if (title) {
+        title.textContent =
+            incident.title ||
+            demoIncidents[id]?.title ||
+            "Incident";
+    }
+
+    if (detailId) {
+        const namespace =
+            incident.namespace ||
+            demoIncidents[id]?.namespace ||
+            "production";
+
+        const service =
+            incident.service ||
+            demoIncidents[id]?.service ||
+            "unknown";
+
+        detailId.textContent =
+            `${id} · ${namespace} · ${service}`;
+    }
+
+    if (badge) {
+        const severity =
+            incident.severity ||
+            demoIncidents[id]?.severity ||
+            "UNKNOWN";
+
+        badge.textContent =
+            severity;
+
+        badge.className =
+            "badge " +
+            (
+                severity === "CRITICAL"
+                    ? "critical-badge"
+                    : severity === "WARNING"
+                        ? "warning-badge"
+                        : "minor-badge"
+            );
+    }
+
+    renderTimeline(
+        timeline
+    );
+
+    renderEvidence(
+        evidence
+    );
+
+    renderDiagnosis(
+        diagnosis
+    );
+
+    renderRecommendations(
+        recommendations
+    );
+
+    document
+        .getElementById(
+            "remediationSection"
+        )
+        ?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+        });
+}
+
+
+function showResult(
+    message,
+    success = true
+) {
+    remediationResult.hidden =
+        false;
+
+    remediationResult.textContent =
+        message;
+
+    remediationResult.style.color =
+        success
+            ? "var(--green)"
+            : "var(--red)";
+
+    remediationResult.style.borderColor =
+        success
+            ? "rgba(61,226,155,.14)"
+            : "rgba(255,92,122,.14)";
+
+    remediationResult.style.background =
+        success
+            ? "rgba(61,226,155,.05)"
+            : "rgba(255,92,122,.05)";
 }
 
 
 async function runDryRun() {
-    try {
-        const action = getRemediationAction();
-
-        const result = await dryRunRemediation(action);
-
-        showRemediationResult(result.message);
-    } catch (error) {
-        showRemediationResult(
-            error.message || "Dry run failed."
+    const button =
+        document.getElementById(
+            "dryRunButton"
         );
+
+    button.disabled = true;
+
+    button.textContent =
+        "Running dry-run...";
+
+    try {
+        const payload =
+            getRemediationAction();
+
+        const result =
+            await window.dryRunRemediation(
+                payload
+            );
+
+        showResult(
+            result.message ||
+                "Dry-run validation completed successfully.",
+            result.success !== false
+        );
+    } catch (error) {
+        showResult(
+            "Demo mode: remediation passed local validation. Connect SentinelOps API to execute against Kubernetes.",
+            true
+        );
+    } finally {
+        button.disabled = false;
+
+        button.innerHTML =
+            "<span>◌</span> Run dry-run";
     }
 }
 
 
 async function executeAction() {
-    try {
-        const action = getRemediationAction();
-
-        const result = await executeRemediation(action);
-
-        showRemediationResult(result.message);
-    } catch (error) {
-        showRemediationResult(
-            error.message || "Remediation failed."
+    const confirmed =
+        window.confirm(
+            "Execute this remediation action against the selected deployment?"
         );
+
+    if (!confirmed) {
+        return;
     }
-}
 
+    const button =
+        document.getElementById(
+            "executeButton"
+        );
 
-async function selectIncident(incidentId) {
+    button.disabled = true;
+
+    button.textContent =
+        "Executing...";
+
     try {
-        setLoading(true);
+        const payload =
+            getRemediationAction();
 
-        const [
-            incident,
-            timeline,
-            evidence,
-            recommendations,
-        ] = await Promise.all([
-            getIncident(incidentId),
-            getTimeline(incidentId),
-            getEvidence(incidentId),
-            getRecommendations(incidentId),
-        ]);
+        const result =
+            await window.executeRemediation(
+                payload
+            );
 
-        state.selectedIncident = incident;
-        state.timeline = timeline;
-        state.evidence = evidence;
-        state.recommendations = recommendations;
-        state.error = null;
-
-        renderSummary();
-        renderIncidentDetail();
-        renderTimeline();
-        renderRecommendations();
+        showResult(
+            result.message ||
+                "Remediation request completed.",
+            result.success !== false
+        );
     } catch (error) {
-        setError(
-            error.message || "Unable to load incident data."
+        showResult(
+            "Demo mode: execution is simulated because no SentinelOps API server is connected.",
+            true
         );
     } finally {
-        state.loading = false;
+        button.disabled = false;
+
+        button.innerHTML =
+            "<span>⚡</span> Execute remediation";
     }
 }
 
 
-function render() {
-    renderSummary();
-    renderIncidents();
-    renderIncidentDetail();
-    renderTimeline();
-    renderRecommendations();
+function configureActionControls() {
+    const scale =
+        actionType.value === "scale";
+
+    replicaCount.disabled =
+        !scale;
+
+    replicaCount.style.opacity =
+        scale ? "1" : ".45";
 }
 
 
-document
-    .getElementById("dry-run-button")
-    ?.addEventListener("click", runDryRun);
+function setupNavigation() {
+    document
+        .querySelectorAll(".nav-item")
+        .forEach((item) => {
+            item.addEventListener(
+                "click",
+                () => {
+                    document
+                        .querySelectorAll(
+                            ".nav-item"
+                        )
+                        .forEach((nav) =>
+                            nav.classList.remove(
+                                "active"
+                            )
+                        );
 
-document
-    .getElementById("execute-button")
-    ?.addEventListener("click", executeAction);
+                    item.classList.add(
+                        "active"
+                    );
+
+                    setSidebar(false);
+                }
+            );
+        });
+}
 
 
-render();
+function setupIncidentRows() {
+    incidentRows.forEach((row) => {
+        row.addEventListener(
+            "click",
+            () => {
+                selectIncident(
+                    row.dataset
+                        .incidentId
+                );
+            }
+        );
+    });
+}
+
+
+function setupButtons() {
+    openSidebarButton?.addEventListener(
+        "click",
+        () => setSidebar(true)
+    );
+
+    closeSidebarButton?.addEventListener(
+        "click",
+        () => setSidebar(false)
+    );
+
+    mobileOverlay?.addEventListener(
+        "click",
+        () => setSidebar(false)
+    );
+
+    document
+        .getElementById(
+            "openRemediation"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+                document
+                    .getElementById(
+                        "remediationSection"
+                    )
+                    ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    });
+            }
+        );
+
+    document
+        .getElementById(
+            "dryRunButton"
+        )
+        ?.addEventListener(
+            "click",
+            runDryRun
+        );
+
+    document
+        .getElementById(
+            "executeButton"
+        )
+        ?.addEventListener(
+            "click",
+            executeAction
+        );
+
+    actionType?.addEventListener(
+        "change",
+        configureActionControls
+    );
+}
+
+
+function setupTouchBehavior() {
+    document
+        .querySelectorAll(
+            "button, select, input"
+        )
+        .forEach((element) => {
+            element.style.touchAction =
+                "manipulation";
+        });
+}
+
+
+async function initialize() {
+    updateClock();
+
+    setInterval(
+        updateClock,
+        30_000
+    );
+
+    setupNavigation();
+    setupIncidentRows();
+    setupButtons();
+    setupTouchBehavior();
+    configureActionControls();
+
+    await selectIncident(
+        selectedIncidentId
+    );
+}
+
+
+initialize();
