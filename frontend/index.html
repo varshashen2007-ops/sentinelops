@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SentinelOps</title>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="topbar">
+        <div>
+            <h1>SentinelOps</h1>
+            <p>Incident Operations Dashboard</p>
+        </div>
+    </header>
+
+    <main class="dashboard">
+
+        <section class="summary-grid">
+
+            <article class="card">
+                <h2>Incidents</h2>
+                <p id="incident-count">0</p>
+            </article>
+
+            <article class="card">
+                <h2>Active</h2>
+                <p id="active-count">0</p>
+            </article>
+
+            <article class="card">
+                <h2>Recommendations</h2>
+                <p id="recommendation-count">0</p>
+            </article>
+
+        </section>
+
+
+        <section class="card">
+            <h2>Incidents</h2>
+
+            <div id="incidents">
+                <p class="empty-state">
+                    No incidents loaded.
+                </p>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <h2>Incident Detail</h2>
+
+            <div id="incident-detail">
+                <p class="empty-state">
+                    Select an incident to view details.
+                </p>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <h2>Timeline</h2>
+
+            <div id="timeline">
+                <p class="empty-state">
+                    No timeline events loaded.
+                </p>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <h2>Recommendations</h2>
+
+            <div id="recommendations">
+                <p class="empty-state">
+                    No recommendations loaded.
+                </p>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <h2>Remediation</h2>
+
+            <div id="remediation-controls">
+
+                <label>
+                    Action
+
+                    <select id="remediation-action">
+                        <option value="restart">
+                            Restart
+                        </option>
+
+                        <option value="scale">
+                            Scale
+                        </option>
+
+                        <option value="rollback">
+                            Rollback
+                        </option>
+                    </select>
+                </label>
+
+
+                <label>
+                    Namespace
+
+                    <input
+                        id="remediation-namespace"
+                        value="default"
+                    >
+                </label>
+
+
+                <label>
+                    Resource
+
+                    <input
+                        id="remediation-resource"
+                        placeholder="deployment-name"
+                    >
+                </label>
+
+
+                <button id="dry-run-button">
+                    Dry Run
+                </button>
+
+
+                <button id="execute-button">
+                    Execute
+                </button>
+
+
+                <p id="remediation-result"></p>
+
+            </div>
+        </section>
+
+    </main>
+
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

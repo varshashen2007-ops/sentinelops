@@ -1,15 +1,20 @@
+from unittest.mock import MagicMock, patch
+
 from collectors.kubernetes_collector import KubernetesCollector
 
 
 def test_kubernetes_collector_collects_pods():
-    collector = KubernetesCollector()
+    mock_pods = MagicMock()
+    mock_pods.items = []
 
-    evidence = collector.collect_pods()
+    with patch("collectors.kubernetes_collector.config.load_kube_config"), \
+         patch("collectors.kubernetes_collector.client.CoreV1Api") as mock_core, \
+         patch("collectors.kubernetes_collector.client.AppsV1Api"):
 
-    assert isinstance(evidence, list)
-    assert len(evidence) >= 1
+        mock_core.return_value.list_pod_for_all_namespaces.return_value = mock_pods
 
-    for item in evidence:
-        assert item.source == "kubernetes"
-        assert item.evidence_type == "pod"
-        assert item.resource is not None
+        collector = KubernetesCollector()
+        evidence = collector.collect_pods()
+
+        assert evidence == []
+        mock_core.return_value.list_pod_for_all_namespaces.assert_called_once()

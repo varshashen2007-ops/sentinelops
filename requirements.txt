@@ -7,3 +7,4 @@ pydantic-settings
 prometheus-api-client
 pytest
 pytest-asyncio
+sentence-transformers
