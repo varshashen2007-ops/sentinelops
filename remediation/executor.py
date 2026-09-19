@@ -1,55 +1,52 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
 from typing import Any, Protocol
 
 from counterfactual.approval import ApprovalRequest
+from remediation.actions import ActionResult, ActionType, RemediationAction
+from remediation.dry_run import DryRunValidator
 from remediation.model import RemediationResult
 
 
 class KubernetesRemediationClient(Protocol):
-    """
-    Interface for Kubernetes mutations used by the remediation executor.
-    """
-
-    def restart(
-        self,
-        target: str,
-        namespace: str | None = None,
-    ) -> Any:
-        ...
+    def restart(self, target: str, namespace: str | None = None) -> Any: ...
 
     def scale(
         self,
         target: str,
         replicas: int,
         namespace: str | None = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     def rollback(
         self,
         target: str,
         namespace: str | None = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     def increase_memory(
         self,
         target: str,
         memory: str,
         namespace: str | None = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
 
 class RemediationExecutor:
     """
-    Executes approved Kubernetes remediation actions.
+    Shared remediation executor.
 
-    Safety boundary:
-    - pending requests cannot execute
-    - rejected requests cannot execute
-    - only approved requests can reach the Kubernetes client
-    - unsupported actions are rejected
-    - invalid parameters are rejected before execution
+    Supports both SentinelOps remediation contracts:
+
+    1. Incident-intelligence flow:
+       ApprovalRequest -> RemediationResult
+
+    2. Kubernetes infrastructure flow:
+       RemediationAction -> ActionResult
+
+    The two contracts are intentionally kept separate inside the
+    executor so neither existing subsystem loses its behavior.
     """
 
     _SUPPORTED_ACTIONS = {
@@ -61,49 +58,79 @@ class RemediationExecutor:
 
     def __init__(
         self,
-        kubernetes_client: KubernetesRemediationClient,
+        kubernetes_client: KubernetesRemediationClient | None = None,
+        *,
+        apps_api: Any | None = None,
+        dry_run_validator: DryRunValidator | None = None,
     ) -> None:
         self.kubernetes_client = kubernetes_client
+        self.dry_run_validator = dry_run_validator or DryRunValidator()
+
+        # Dhrithi's infrastructure executor supplies an AppsV1Api.
+        # Import lazily so the rest of SentinelOps does not require
+        # Kubernetes during simple domain-level tests.
+        if apps_api is not None:
+            self.apps_api = apps_api
+        else:
+            self.apps_api = None
 
     def execute(
+        self,
+        request_or_action: ApprovalRequest | RemediationAction,
+        *,
+        dry_run: bool = False,
+    ) -> RemediationResult | ActionResult:
+        """
+        Execute either an ApprovalRequest or a RemediationAction.
+        """
+        if isinstance(request_or_action, ApprovalRequest):
+            return self._execute_approval_request(request_or_action)
+
+        if isinstance(request_or_action, RemediationAction):
+            return self._execute_remediation_action(
+                request_or_action,
+                dry_run=dry_run,
+            )
+
+        raise TypeError(
+            "RemediationExecutor.execute() expects "
+            "ApprovalRequest or RemediationAction."
+        )
+
+    # ------------------------------------------------------------------
+    # SentinelOps incident-intelligence remediation
+    # ------------------------------------------------------------------
+
+    def _execute_approval_request(
         self,
         request: ApprovalRequest,
     ) -> RemediationResult:
         if request.status != "approved":
             raise PermissionError(
-                "Remediation can only be executed for an approved "
-                "approval request."
+                "Remediation can only be executed for an approved request."
             )
 
         action_type = request.action_type.lower().strip()
 
         if action_type not in self._SUPPORTED_ACTIONS:
             raise ValueError(
-                f"Unsupported remediation action: "
-                f"{request.action_type}"
+                f"Unsupported remediation action: {request.action_type}"
             )
 
         if not request.target or not request.target.strip():
-            raise ValueError(
-                "A remediation target is required."
-            )
+            raise ValueError("Remediation target is required.")
 
         namespace = self._get_namespace(request)
         parameters = dict(request.parameters)
 
-        # Validate the requested action before allowing any
-        # Kubernetes client call.
-        self._validate_parameters(
-            action_type=action_type,
-            parameters=parameters,
-        )
+        self._validate_parameters(action_type, parameters)
 
         try:
-            details = self._execute_action(
-                action_type=action_type,
-                target=request.target,
-                namespace=namespace,
-                parameters=parameters,
+            details = self._execute_approved_action(
+                action_type,
+                request.target,
+                namespace,
+                parameters,
             )
 
             return RemediationResult(
@@ -112,11 +139,8 @@ class RemediationExecutor:
                 action_type=request.action_type,
                 target=request.target,
                 status="executed",
-                message=(
-                    f"Remediation action '{request.action_type}' "
-                    "executed successfully."
-                ),
-                details=details if isinstance(details, dict) else {},
+                message="Remediation action executed successfully.",
+                details=details,
             )
 
         except Exception as exc:
@@ -126,82 +150,89 @@ class RemediationExecutor:
                 action_type=request.action_type,
                 target=request.target,
                 status="failed",
-                message=(
-                    f"Remediation action '{request.action_type}' "
-                    f"failed: {exc}"
-                ),
+                message="Remediation action failed.",
                 details={
                     "error_type": type(exc).__name__,
+                    "error": str(exc),
                 },
             )
 
-    @staticmethod
     def _validate_parameters(
+        self,
         action_type: str,
         parameters: dict[str, Any],
     ) -> None:
         if action_type == "scale":
             replicas = parameters.get("replicas")
 
-            if not isinstance(replicas, int):
+            if not isinstance(replicas, int) or isinstance(replicas, bool):
                 raise ValueError(
-                    "Scale remediation requires an integer "
-                    "'replicas' parameter."
+                    "Scale remediation requires an integer 'replicas' parameter."
                 )
 
             if replicas < 0:
                 raise ValueError(
-                    "Scale replicas cannot be negative."
+                    "Scale remediation requires replicas >= 0."
                 )
 
-        if action_type == "increase_memory":
+        elif action_type == "increase_memory":
             memory = parameters.get("memory")
 
             if not isinstance(memory, str) or not memory.strip():
                 raise ValueError(
-                    "Memory remediation requires a non-empty "
-                    "'memory' parameter."
+                    "Memory remediation requires a non-empty 'memory' parameter."
                 )
 
-    def _execute_action(
+    def _execute_approved_action(
         self,
         action_type: str,
         target: str,
         namespace: str | None,
         parameters: dict[str, Any],
-    ) -> Any:
+    ) -> dict[str, Any]:
+        if self.kubernetes_client is None:
+            raise RuntimeError(
+                "No Kubernetes remediation client is configured."
+            )
+
         if action_type == "restart":
-            return self.kubernetes_client.restart(
-                target=target,
+            result = self.kubernetes_client.restart(
+                target,
                 namespace=namespace,
             )
 
-        if action_type == "scale":
-            return self.kubernetes_client.scale(
-                target=target,
+        elif action_type == "scale":
+            result = self.kubernetes_client.scale(
+                target,
                 replicas=parameters["replicas"],
                 namespace=namespace,
             )
 
-        if action_type == "rollback":
-            return self.kubernetes_client.rollback(
-                target=target,
+        elif action_type == "rollback":
+            result = self.kubernetes_client.rollback(
+                target,
                 namespace=namespace,
             )
 
-        if action_type == "increase_memory":
-            return self.kubernetes_client.increase_memory(
-                target=target,
+        elif action_type == "increase_memory":
+            result = self.kubernetes_client.increase_memory(
+                target,
                 memory=parameters["memory"],
                 namespace=namespace,
             )
 
-        raise ValueError(
-            f"Unsupported remediation action: {action_type}"
-        )
+        else:
+            raise ValueError(
+                f"Unsupported remediation action: {action_type}"
+            )
 
-    @staticmethod
+        return {
+            "result": result,
+            "namespace": namespace,
+        }
+
     def _get_namespace(
+        self,
         request: ApprovalRequest,
     ) -> str | None:
         namespace = request.parameters.get("namespace")
@@ -214,4 +245,167 @@ class RemediationExecutor:
                 "Namespace must be a non-empty string when provided."
             )
 
-        return namespace
+        return namespace.strip()
+
+    # ------------------------------------------------------------------
+    # Dhrithi Kubernetes infrastructure remediation
+    # ------------------------------------------------------------------
+
+    def _execute_remediation_action(
+        self,
+        action: RemediationAction,
+        *,
+        dry_run: bool,
+    ) -> ActionResult:
+        validation = self.dry_run_validator.validate(action)
+
+        if not validation.valid:
+            return ActionResult(
+                action_type=action.action_type,
+                resource_type=action.resource_type,
+                namespace=action.namespace,
+                resource_name=action.resource_name,
+                dry_run=dry_run,
+                success=False,
+                message=validation.message,
+            )
+
+        if dry_run:
+            return ActionResult(
+                action_type=action.action_type,
+                resource_type=action.resource_type,
+                namespace=action.namespace,
+                resource_name=action.resource_name,
+                dry_run=True,
+                success=True,
+                message=validation.message,
+            )
+
+        if self.apps_api is None:
+            return ActionResult(
+                action_type=action.action_type,
+                resource_type=action.resource_type,
+                namespace=action.namespace,
+                resource_name=action.resource_name,
+                dry_run=False,
+                success=False,
+                message="Kubernetes Apps API is not configured.",
+            )
+
+        if action.action_type is ActionType.RESTART:
+            return self._restart(action)
+
+        if action.action_type is ActionType.SCALE:
+            return self._scale(action)
+
+        if action.action_type is ActionType.ROLLBACK:
+            return self._rollback(action)
+
+        if action.action_type is ActionType.PATCH:
+            return self._patch(action)
+
+        return ActionResult(
+            action_type=action.action_type,
+            resource_type=action.resource_type,
+            namespace=action.namespace,
+            resource_name=action.resource_name,
+            dry_run=False,
+            success=False,
+            message="Unsupported remediation action.",
+        )
+
+    def _restart(self, action: RemediationAction) -> ActionResult:
+        patch = {
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "sentinelops/restarted-at": datetime.now(
+                                timezone.utc
+                            ).isoformat()
+                        }
+                    }
+                }
+            }
+        }
+
+        self._patch_resource(action, patch)
+
+        return self._success(action, "Restart request submitted.")
+
+    def _scale(self, action: RemediationAction) -> ActionResult:
+        patch = {
+            "spec": {
+                "replicas": action.parameters["replicas"]
+            }
+        }
+
+        self._patch_resource(action, patch)
+
+        return self._success(action, "Scale request submitted.")
+
+    def _rollback(self, action: RemediationAction) -> ActionResult:
+        revision = action.parameters.get("revision")
+
+        value = str(revision) if revision is not None else "true"
+
+        patch = {
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "sentinelops/rollback-requested": value
+                        }
+                    }
+                }
+            }
+        }
+
+        self._patch_resource(action, patch)
+
+        return self._success(action, "Rollback request submitted.")
+
+    def _patch(self, action: RemediationAction) -> ActionResult:
+        patch = action.parameters["patch"]
+
+        self._patch_resource(action, patch)
+
+        return self._success(action, "Patch request submitted.")
+
+    def _patch_resource(
+        self,
+        action: RemediationAction,
+        patch: dict[str, Any],
+    ) -> Any:
+        if action.resource_type.value == "deployment":
+            return self.apps_api.patch_namespaced_deployment(
+                name=action.resource_name,
+                namespace=action.namespace,
+                body=patch,
+            )
+
+        if action.resource_type.value == "statefulset":
+            return self.apps_api.patch_namespaced_stateful_set(
+                name=action.resource_name,
+                namespace=action.namespace,
+                body=patch,
+            )
+
+        raise ValueError(
+            f"Unsupported resource type: {action.resource_type}"
+        )
+
+    def _success(
+        self,
+        action: RemediationAction,
+        message: str,
+    ) -> ActionResult:
+        return ActionResult(
+            action_type=action.action_type,
+            resource_type=action.resource_type,
+            namespace=action.namespace,
+            resource_name=action.resource_name,
+            dry_run=False,
+            success=True,
+            message=message,
+        )

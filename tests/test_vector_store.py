@@ -1,10 +1,18 @@
 import pytest
 
-from embeddings.vector_store import InMemoryVectorStore
+from embeddings.vector_store import InMemoryVectorStore as EmbeddingVectorStore
+from storage.vector.store import (
+    InMemoryVectorStore as StorageVectorStore,
+    VectorRecord,
+)
 
+
+# ---------------------------------------------------------------------------
+# Existing SentinelOps embedding vector store tests
+# ---------------------------------------------------------------------------
 
 def test_store_can_add_and_retrieve_vector():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     store.add(
         "incident-001",
@@ -21,7 +29,7 @@ def test_store_can_add_and_retrieve_vector():
 
 
 def test_similarity_search_returns_most_similar_first():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     store.add(
         "incident-001",
@@ -52,7 +60,7 @@ def test_similarity_search_returns_most_similar_first():
 
 
 def test_top_k_limits_results():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     for index in range(5):
         store.add(
@@ -69,7 +77,7 @@ def test_top_k_limits_results():
 
 
 def test_empty_store_returns_no_matches():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     matches = store.search(
         [1.0, 0.0, 0.0],
@@ -79,7 +87,7 @@ def test_empty_store_returns_no_matches():
 
 
 def test_invalid_vector_dimensions_are_rejected():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     with pytest.raises(ValueError):
         store.add(
@@ -89,7 +97,7 @@ def test_invalid_vector_dimensions_are_rejected():
 
 
 def test_invalid_query_dimensions_are_rejected():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     with pytest.raises(ValueError):
         store.search(
@@ -98,7 +106,7 @@ def test_invalid_query_dimensions_are_rejected():
 
 
 def test_invalid_top_k_is_rejected():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     with pytest.raises(ValueError):
         store.search(
@@ -108,17 +116,15 @@ def test_invalid_top_k_is_rejected():
 
 
 def test_add_many_stores_multiple_records():
-    store = InMemoryVectorStore(dimensions=3)
-
-    from embeddings.vector_store import VectorRecord
+    store = EmbeddingVectorStore(dimensions=3)
 
     records = [
-        VectorRecord(
+        __import__("embeddings.vector_store", fromlist=["VectorRecord"]).VectorRecord(
             record_id="incident-001",
             vector=[1.0, 0.0, 0.0],
             metadata={"failure": "OOMKilled"},
         ),
-        VectorRecord(
+        __import__("embeddings.vector_store", fromlist=["VectorRecord"]).VectorRecord(
             record_id="incident-002",
             vector=[0.0, 1.0, 0.0],
             metadata={"failure": "FailedScheduling"},
@@ -133,7 +139,7 @@ def test_add_many_stores_multiple_records():
 
 
 def test_clear_removes_all_records():
-    store = InMemoryVectorStore(dimensions=3)
+    store = EmbeddingVectorStore(dimensions=3)
 
     store.add(
         "incident-001",
@@ -146,3 +152,91 @@ def test_clear_removes_all_records():
 
     assert store.count() == 0
     assert store.get("incident-001") is None
+
+
+# ---------------------------------------------------------------------------
+# Dhrithi's storage-layer vector store tests
+# ---------------------------------------------------------------------------
+
+def test_storage_upsert_and_search():
+    store = StorageVectorStore()
+
+    store.upsert(
+        [
+            VectorRecord(
+                record_id="incident-1",
+                vector=[1.0, 0.0],
+                metadata={"severity": "high"},
+            ),
+            VectorRecord(
+                record_id="incident-2",
+                vector=[0.0, 1.0],
+                metadata={"severity": "low"},
+            ),
+        ]
+    )
+
+    results = store.search([1.0, 0.0], limit=1)
+
+    assert len(results) == 1
+    assert results[0].record_id == "incident-1"
+
+
+def test_storage_metadata_filter():
+    store = StorageVectorStore()
+
+    store.upsert(
+        [
+            VectorRecord(
+                record_id="incident-1",
+                vector=[1.0, 0.0],
+                metadata={"severity": "high"},
+            ),
+            VectorRecord(
+                record_id="incident-2",
+                vector=[1.0, 0.0],
+                metadata={"severity": "low"},
+            ),
+        ]
+    )
+
+    results = store.search(
+        [1.0, 0.0],
+        metadata_filter={"severity": "high"},
+    )
+
+    assert len(results) == 1
+    assert results[0].record_id == "incident-1"
+
+
+def test_storage_delete():
+    store = StorageVectorStore()
+
+    store.upsert(
+        [
+            VectorRecord(
+                record_id="incident-1",
+                vector=[1.0, 0.0],
+            )
+        ]
+    )
+
+    store.delete(["incident-1"])
+
+    assert store.search([1.0, 0.0]) == []
+
+
+def test_storage_dimension_mismatch_is_rejected():
+    store = StorageVectorStore()
+
+    store.upsert(
+        [
+            VectorRecord(
+                record_id="incident-1",
+                vector=[1.0, 0.0],
+            )
+        ]
+    )
+
+    with pytest.raises(ValueError):
+        store.search([1.0, 0.0, 0.0])
