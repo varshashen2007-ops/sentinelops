@@ -4,3 +4,13 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .vscode/
+# Generated datasets and model artifacts
+data/public/
+data/*.csv
+data/*.jsonl
+data/*.joblib
+
+# Local working backups
+*.pre_rag_backup
+*.telemetry_backup
+frontend/*.backup.*

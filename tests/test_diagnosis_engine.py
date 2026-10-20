@@ -171,3 +171,40 @@ def test_incident_without_evidence_produces_no_evidence_references():
     )
 
     assert diagnosis.evidence_references == []
+
+def test_diagnosis_preserves_structured_telemetry_evidence():
+    from incident_engine.telemetry_evidence import analyze_metric
+
+    evidence = analyze_metric(
+        metric_name="container_cpu_usage",
+        baseline=20,
+        current_value=80,
+        namespace="default",
+        resource="checkout-service",
+    )
+
+    incident = IncidentCandidate(
+        detector="ResourceDetector",
+        title="High CPU",
+        severity="warning",
+        timestamp=evidence.timestamp,
+        namespace="default",
+        resource="checkout-service",
+        evidence=evidence,
+        details="CPU usage increased from baseline.",
+    )
+
+    classification = IncidentClassifier().classify(incident)
+    diagnosis = DiagnosisEngine().diagnose(incident, classification)
+
+    assert diagnosis.evidence_references
+    reference = diagnosis.evidence_references[0]
+
+    assert reference.source == "prometheus"
+    assert reference.evidence_type == "metric"
+    assert reference.resource == "checkout-service"
+    assert reference.data["metric_name"] == "container_cpu_usage"
+    assert reference.data["baseline"] == 20.0
+    assert reference.data["current_value"] == 80.0
+    assert reference.data["absolute_change"] == 60.0
+    assert reference.data["relative_change_pct"] == 300.0
