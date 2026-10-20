@@ -43,6 +43,7 @@ class DiagnosisEngine:
             classification=classification,
             historical_incident_ids=historical_incident_ids,
         )
+        explanation += self._build_telemetry_explanation(incident)
 
         return Diagnosis(
             summary=summary,
@@ -163,3 +164,30 @@ class DiagnosisEngine:
             f"{incident.title}. "
             f"Likely root cause: {root_cause}"
         )
+    @staticmethod
+    def _build_telemetry_explanation(incident: IncidentCandidate) -> str:
+        """Describe structured telemetry changes without inferring causality."""
+        evidence = incident.evidence
+        if evidence is None or evidence.evidence_type != "metric":
+            return ""
+
+        data = evidence.data or {}
+        metric_name = data.get("metric_name")
+        baseline = data.get("baseline")
+        current_value = data.get("current_value")
+        absolute_change = data.get("absolute_change")
+        relative_change = data.get("relative_change_pct")
+
+        if metric_name is None or baseline is None or current_value is None:
+            return ""
+
+        detail = (
+            f" Current telemetry evidence: {metric_name} changed from "
+            f"{baseline} to {current_value} "
+            f"(absolute change: {absolute_change})."
+        )
+        if relative_change is not None:
+            detail += f" Relative change: {relative_change:.2f}%."
+
+        detail += " This measurement describes a change and does not alone establish causality."
+        return detail

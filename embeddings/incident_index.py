@@ -50,6 +50,7 @@ class IncidentVectorIndex:
         metadata = {
             "incident_id": embedded.incident_id,
             "document": embedded.document,
+            **incident.metadata,
         }
 
         self.vector_store.add(
@@ -95,10 +96,11 @@ class IncidentVectorIndex:
 
         indexed: list[IndexedIncident] = []
 
-        for embedded in embedded_incidents:
+        for incident, embedded in zip(incidents, embedded_incidents):
             metadata = {
                 "incident_id": embedded.incident_id,
                 "document": embedded.document,
+                **incident.metadata,
             }
 
             self.vector_store.add(

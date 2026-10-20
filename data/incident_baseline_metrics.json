@@ -1,0 +1,194 @@
+{
+  "data_source": "synthetic",
+  "warning": "Synthetic benchmark only. Results do not establish real-world incident classification performance.",
+  "feature_names": [
+    "duration_seconds",
+    "cpu_usage_pct",
+    "memory_usage_pct",
+    "restart_count",
+    "pod_pending_minutes",
+    "network_error_rate_pct",
+    "dependency_latency_ms",
+    "disk_usage_pct",
+    "replica_count"
+  ],
+  "classes": [
+    "Application",
+    "Configuration",
+    "Dependency",
+    "Infrastructure",
+    "Networking",
+    "Resource",
+    "Scheduling",
+    "Unknown"
+  ],
+  "sample_counts": {
+    "train": 560,
+    "validation": 120,
+    "test": 120
+  },
+  "validation": {
+    "accuracy": 0.8,
+    "macro_f1": 0.7965444409131839
+  },
+  "test": {
+    "accuracy": 0.7666666666666667,
+    "macro_f1": 0.7682860254780444,
+    "classification_report": {
+      "Application": {
+        "precision": 0.6470588235294118,
+        "recall": 0.7333333333333333,
+        "f1-score": 0.6875,
+        "support": 15.0
+      },
+      "Configuration": {
+        "precision": 0.4117647058823529,
+        "recall": 0.4666666666666667,
+        "f1-score": 0.4375,
+        "support": 15.0
+      },
+      "Dependency": {
+        "precision": 1.0,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.9655172413793104,
+        "support": 15.0
+      },
+      "Infrastructure": {
+        "precision": 0.9285714285714286,
+        "recall": 0.8666666666666667,
+        "f1-score": 0.896551724137931,
+        "support": 15.0
+      },
+      "Networking": {
+        "precision": 0.875,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.9032258064516129,
+        "support": 15.0
+      },
+      "Resource": {
+        "precision": 1.0,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.9655172413793104,
+        "support": 15.0
+      },
+      "Scheduling": {
+        "precision": 0.9333333333333333,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.9333333333333333,
+        "support": 15.0
+      },
+      "Unknown": {
+        "precision": 0.38461538461538464,
+        "recall": 0.3333333333333333,
+        "f1-score": 0.35714285714285715,
+        "support": 15.0
+      },
+      "accuracy": 0.7666666666666667,
+      "macro avg": {
+        "precision": 0.7725429594914889,
+        "recall": 0.7666666666666666,
+        "f1-score": 0.7682860254780444,
+        "support": 120.0
+      },
+      "weighted avg": {
+        "precision": 0.772542959491489,
+        "recall": 0.7666666666666667,
+        "f1-score": 0.7682860254780444,
+        "support": 120.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        11,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        2,
+        7,
+        0,
+        0,
+        0,
+        0,
+        1,
+        5
+      ],
+      [
+        0,
+        1,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        13,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        14,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        14,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        14,
+        1
+      ],
+      [
+        3,
+        6,
+        0,
+        0,
+        1,
+        0,
+        0,
+        5
+      ]
+    ]
+  },
+  "feature_importances": {
+    "dependency_latency_ms": 0.17748117187547743,
+    "network_error_rate_pct": 0.16894391638590212,
+    "pod_pending_minutes": 0.1641597460901792,
+    "memory_usage_pct": 0.14139104364031535,
+    "disk_usage_pct": 0.13464380362768108,
+    "restart_count": 0.09718999969868192,
+    "cpu_usage_pct": 0.07025998919151073,
+    "duration_seconds": 0.028016211248540767,
+    "replica_count": 0.017914118241711425
+  }
+}
